@@ -1,0 +1,179 @@
+library(manifestoR)
+library(tm)
+library(tidytext)
+library(dplyr)
+library(SnowballC)
+# library(qdap)
+library(topicmodels)
+library(ggplot2)
+library(stm)
+
+setwd("C:/Users/sv161/Documents/0. Duke/2. Second Year/1. Summer/SICSS/Manifesto Project")
+mp_setapikey("C:/Users/sv161/Documents/0. Duke/2. Second Year/1. Summer/SICSS/Manifesto Project/manifesto_apikey.txt")
+
+#### Country-level manifestos
+
+# The countries
+countries <- c("Ireland", "South Africa", "United Kingdom", 'Australia', "New Zealand")
+
+for (i in 1:length(countries)){
+  
+  print(i)
+  print(countries[i])
+  
+  # calling the data
+  my_corpus <- mp_corpus(countryname == countries[i] & edate > as.Date("1945-01-01"))
+  full_data <- mp_maindataset(version = "current")
+  
+  print('corpus is made')
+  
+  # Cleaning the dataset
+  
+  # Stop words
+  Stop_corpus <- tm_map(my_corpus, removeWords, stopwords("english"))
+  
+  #stopwords <- read.csv("stopwords_en.csv", header = T)
+  #stopwords <- as.character(stopwords$V1)
+  #stopwords <- c(stopwords, stopwords())
+  #my_corpus <- VectorSource(my_corpus)
+  #my_corpus <- VCorpus(my_corpus)
+  #my_corpus <- tm_map(my_corpus, content_transformer(tolower))
+  #my_corpus<-tm_map(my_corpus, removeWords, stopwords)
+  
+  
+  # Puntuation
+  punct_corpus <- tm_map(Stop_corpus, content_transformer(removePunctuation))
+  
+  # Numbers
+  num_corpus <- tm_map(punct_corpus, content_transformer(removeNumbers))
+  
+  # Lower Case
+  low_corpus <- tm_map(num_corpus,  content_transformer(tolower))
+  
+  # Particular Stopwords
+  mystopwords <- c("[Aa]nd", "[Ff]or", "[Ii]n", "[Ii]s", "[Ii]t",
+                   "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the")
+  
+  stem_corpus  <- tm_map(low_corpus, content_transformer(stemDocument), language = "english")
+  
+  # White Spaces
+  white_corpus <- tm_map(stem_corpus, content_transformer(stripWhitespace))  
+  
+  # Final corpus
+  final_corpus <- tm_map(stem_corpus, removeWords, mystopwords)
+  
+  manifesto_DTM <- DocumentTermMatrix(final_corpus, control = list(wordLengths = c(2, Inf)))
+  
+  
+  # Topic Model
+  topic_model <- LDA(manifesto_DTM, k=4, control = list(seed = 321))
+  topics <- tidy(topic_model, matrix = "beta")
+  
+  top_terms <-
+    topics %>%
+    group_by(topic) %>%
+    top_n(10, beta) %>%
+    ungroup() %>%
+    arrange(topic, -beta)
+  
+  top_terms %>%
+    mutate(term = reorder(term, beta)) %>%
+    ggplot(aes(term, beta, fill = factor(topic))) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ topic, scales = "free") +
+    coord_flip()
+  
+  print('graphing now')
+  
+  # Graph
+  file <- paste0(countries[i], ".png")
+  title <- paste0("Topic Model Results for ", countries[i])
+  top_terms %>%
+    mutate(term = reorder(term, beta)) %>%
+    ggplot(aes(term, beta, fill = factor(topic))) + 
+    geom_col(show.legend = FALSE) + 
+    ggtitle(title) +
+    facet_wrap(~ topic, scales = "free") +
+    coord_flip()
+  ggsave(filename = file)
+ 
+}
+
+
+#### PArty ideology MAnifestos
+
+my_corpus <- mp_corpus(parfam == 60 & countryname == "United Kingdom" | countryname == "Australia"
+                       | countryname == "New Zealand" | countryname == "South Africa" |
+                         countryname == "Ireland")
+full_data <- mp_maindataset(version = "current")
+
+print('corpus is made')
+
+# Cleaning the dataset
+# Stop words
+my_corpus <- tm_map(my_corpus, removeWords, stopwords("english"))
+
+# Puntuation
+my_corpus <- tm_map(my_corpus, content_transformer(removePunctuation))
+
+# Numbers
+my_corpus <- tm_map(my_corpus, content_transformer(removeNumbers))
+
+# Lower Case
+my_corpus <- tm_map(my_corpus,  content_transformer(tolower))
+
+# Particular Stopwords
+mystopwords <- c("[Aa]nd", "[Ff]or", "[Ii]n", "[Ii]s", "[Ii]t",
+                 "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the",
+                 "australia", "australian", "britain", "ireland", "zealand",
+                 "irish", "new")
+
+my_corpus  <- tm_map(my_corpus, content_transformer(stemDocument), language = "english")
+
+# White Spaces
+my_corpus <- tm_map(my_corpus, content_transformer(stripWhitespace))  
+
+# Final corpus
+final_corpus <- tm_map(my_corpus, removeWords, mystopwords)
+
+manifesto_DTM <- DocumentTermMatrix(final_corpus, control = list(wordLengths = c(2, Inf)))
+
+
+# Topic Model
+topic_model <- LDA(manifesto_DTM, k=5, control = list(seed = 321))
+topics <- tidy(topic_model, matrix = "beta")
+
+top_terms <-
+  topics %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+
+print('graphing now')
+
+# Graph
+file <- conservative
+title <- paste0("Topic Model Results for Conservative Parties")
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) + 
+  geom_col(show.legend = FALSE) + 
+  ggtitle(title) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+ggsave(filename = file)
+
+# STructural Topic Models
+google_doc_id <- "1LcX-JnpGB0lU1iDnXnxB6WFqBywUKpew" # google file ID
+poliblogs<-read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", google_doc_id),
+                    stringsAsFactors = FALSE)
+processed <- textProcessor(poliblogs$documents, metadata = poliblogs)
+out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
