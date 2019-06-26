@@ -38,6 +38,9 @@ scores.max()
 
 
 ###with the SVC Classifier
-from sklearn.svm import SVC
-clf = SVC(kernel='linear', C=1)
-scores = cross_val_score(clf, X_train, y_train, cv=10)
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import cross_validate
+clf = LinearSVC(C=1).fit(X_train, y_train)
+cv_results = cross_validate(clf, X_test, y_test, cv=3)
+#sorted(cv_results.keys())
+cv_results['test_score'].max()
