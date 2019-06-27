@@ -3,13 +3,23 @@ library(tm)
 library(tidytext)
 library(dplyr)
 library(SnowballC)
-# library(qdap)
 library(topicmodels)
 library(ggplot2)
 library(stm)
+library(RColorBrewer)
+
+#### Setting Up
 
 setwd("C:/Users/sv161/Documents/0. Duke/2. Second Year/1. Summer/SICSS/Manifesto Project")
 mp_setapikey("C:/Users/sv161/Documents/0. Duke/2. Second Year/1. Summer/SICSS/Manifesto Project/manifesto_apikey.txt")
+
+# Full Sample
+full_data <- mp_maindataset(version = "current")
+
+# Color scheme
+new_palette <- brewer.pal(n = 5, name = 'YlGnBu')
+new_palette[1] <- '#F6D55C'
+new_palette
 
 #### Country-level manifestos
 
@@ -23,7 +33,6 @@ for (i in 1:length(countries)){
   
   # calling the data
   my_corpus <- mp_corpus(countryname == countries[i] & edate > as.Date("1945-01-01"))
-  full_data <- mp_maindataset(version = "current")
   
   print('corpus is made')
   
@@ -84,6 +93,7 @@ for (i in 1:length(countries)){
     ggplot(aes(term, beta, fill = factor(topic))) +
     geom_col(show.legend = FALSE) +
     facet_wrap(~ topic, scales = "free") +
+    scale_fill_brewer(palette="YlGnBu") + theme_classic() +
     coord_flip()
   
   print('graphing now')
@@ -97,7 +107,7 @@ for (i in 1:length(countries)){
     geom_col(show.legend = FALSE) + 
     ggtitle(title) +
     facet_wrap(~ topic, scales = "free") +
-    coord_flip()
+    coord_flip() + scale_fill_manual(values=new_palette) + theme_classic()
   ggsave(filename = file)
  
 }
@@ -184,9 +194,11 @@ for(i in 1:length(ideol)){
   geom_col(show.legend = FALSE) + 
   ggtitle(title) +
   facet_wrap(~ topic, scales = "free") +
-  coord_flip()
+  coord_flip() + scale_fill_manual(values=new_palette) + theme_classic()
   ggsave(filename = file)
 }
+
+
 
 ## Other visuals 
 subsample <- full_data[which(full_data$countryname == "United Kingdom" | full_data$countryname == "Australia"
@@ -201,7 +213,11 @@ subsample$type <- ifelse(subsample$parfam == 10, "Ecological",
                                                             ifelse(subsample$parfam == 70, "Nationalist",
                                                                    ifelse(subsample$parfam == 80, "Agrarian",
                                                                           "Ethnic"))))))))
+
+
+
 ggplot(data=subsample, aes(subsample$type)) + 
-  geom_bar(, stat = "count") + coord_flip() +
-  labs(title="Frequency of Manifestos per Type of Party", y="Count", x="")
+  geom_bar(aes(fill=countryname), stat = "count") + coord_flip() +
+  labs(title="Frequency of Manifestos per Type of Party", y="Count", x="") +
+  scale_fill_manual(values=new_palette) + theme_classic()
 ggsave(filename = "count.png")
