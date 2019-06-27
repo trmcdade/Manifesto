@@ -153,7 +153,7 @@ plt.show()
 target_var = np.array(d['target'])
 target = np_utils.to_categorical(target_var)
 
-## K means
+### K means
 # d['target'].unique()
 k_means = cluster.KMeans(n_clusters=len(d['target'].unique())) #follow the codebook. assume some 10 groups
 kmeans_df = pd.concat([transformed_df, d['target']], axis = 1).dropna()
@@ -168,20 +168,8 @@ y = k_means.predict(kmeans_df)
 ###PCA plot
 #plot the clusters: 3D example
 from mpl_toolkits.mplot3d import Axes3D
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(transformed_df.iloc[:,0], transformed_df.iloc[:,1], transformed_df.iloc[:,2], c=y_clusters, cmap="hsv", marker='o', alpha=0.05)
 
-centers = k_means.cluster_centers_
-ax.scatter(centers[:, 0], centers[:, 1], centers[:,2], c='black', s=200, alpha=0.5);
-ax.set_xlabel('component 1')
-ax.set_ylabel('component 2')
-ax.set_zlabel('component 3')
-plt.title('K-means clustering of political parties. K=10')
-
-plt.show()
-
-#you can loop over to get 13 plots, but the clustering is pretty much the same:
+#exploratory: loop over to get 13 plots, clustering becomes less obvious up to component #4.
 for i in range(13):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -191,10 +179,40 @@ for i in range(13):
     ax.set_xlabel('component '+ str(i+1))
     ax.set_ylabel('component ' + str(i+2))
     ax.set_zlabel('component ' + str(i+3))
-    plt.title('K-means clustering of political parties. K=10')
+    plt.title('K-means clustering of political parties. K=12')
 
     plt.show()
 
+#so it appears we should plot all combinations up to component #4.
+from itertools import combinations
+c = combinations([0,1,2,3],3)
+c = list(c) #c has the following structure: c[ith-combination][jth-value in i-th combination]
+
+for i in range(len(c)):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(transformed_df.iloc[:, c[i][0]], transformed_df.iloc[:, c[i][1]], transformed_df.iloc[:, c[i][2]], c=y_clusters,
+               cmap="hsv", marker='o', alpha=0.05)
+        centers = k_means.cluster_centers_
+        ax.scatter(centers[:, c[i][0]], centers[:, c[i][1]], centers[:, c[i][2]], c='black', s=200, alpha=0.5);
+        ax.set_xlabel('component' + str(c[i][0]))
+        ax.set_ylabel('component' + str(c[i][1]))
+        ax.set_zlabel('component' + str(c[i][2]))
+        plt.title('K-means clustering of political parties. K=12')
+        plt.show()
+
+#most substantively meaningful plot: component 0-1-2
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(transformed_df.iloc[:,0], transformed_df.iloc[:,1], transformed_df.iloc[:,2], c=y_clusters, cmap="hsv", marker='o', alpha=0.05)
+
+centers = k_means.cluster_centers_
+ax.scatter(centers[:, 0], centers[:, 1], centers[:,2], c='black', s=200, alpha=0.5);
+ax.set_xlabel('Socialism-Conservatism')
+ax.set_ylabel('Green-Growth')
+ax.set_zlabel('Neoliberalism - Protectionism')
+plt.title('K-means clustering of political parties. K=12')
+plt.show()
 
 
 # run a train/test split nn
