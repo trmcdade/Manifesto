@@ -1,4 +1,3 @@
-# install.packages("stm")
 library(manifestoR)
 library(tm)
 library(tidytext)
@@ -53,7 +52,10 @@ for (i in 1:length(countries)){
   
   # Particular Stopwords
   mystopwords <- c("[Aa]nd", "[Ff]or", "[Ii]n", "[Ii]s", "[Ii]t",
-                   "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the")
+                   "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the",
+                   "australia", "australian", "britain", "ireland", "zealand",
+                   "irish", "new", "scotland", "uk", "britain", "south", "africa",
+                   "northern", "scottish")
   
   stem_corpus  <- tm_map(low_corpus, content_transformer(stemDocument), language = "english")
   
