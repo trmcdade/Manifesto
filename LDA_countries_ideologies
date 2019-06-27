@@ -52,7 +52,10 @@ for (i in 1:length(countries)){
   
   # Particular Stopwords
   mystopwords <- c("[Aa]nd", "[Ff]or", "[Ii]n", "[Ii]s", "[Ii]t",
-                   "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the")
+                   "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the",
+                   "australia", "australian", "britain", "ireland", "zealand",
+                   "irish", "new", "scotland", "uk", "britain", "south", "africa",
+                   "northern", "scottish")
   
   stem_corpus  <- tm_map(low_corpus, content_transformer(stemDocument), language = "english")
   
@@ -99,81 +102,106 @@ for (i in 1:length(countries)){
  
 }
 
+#### Party ideology Manifestos
 
-#### PArty ideology MAnifestos
+ideol <- seq(10, 90, 10)
 
-my_corpus <- mp_corpus(parfam == 60 & countryname == "United Kingdom" | countryname == "Australia"
-                       | countryname == "New Zealand" | countryname == "South Africa" |
-                         countryname == "Ireland")
-full_data <- mp_maindataset(version = "current")
-
-print('corpus is made')
-
-# Cleaning the dataset
-# Stop words
-my_corpus <- tm_map(my_corpus, removeWords, stopwords("english"))
-
-# Puntuation
-my_corpus <- tm_map(my_corpus, content_transformer(removePunctuation))
-
-# Numbers
-my_corpus <- tm_map(my_corpus, content_transformer(removeNumbers))
-
-# Lower Case
-my_corpus <- tm_map(my_corpus,  content_transformer(tolower))
-
-# Particular Stopwords
-mystopwords <- c("[Aa]nd", "[Ff]or", "[Ii]n", "[Ii]s", "[Ii]t",
-                 "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the",
-                 "australia", "australian", "britain", "ireland", "zealand",
-                 "irish", "new")
-
-my_corpus  <- tm_map(my_corpus, content_transformer(stemDocument), language = "english")
-
-# White Spaces
-my_corpus <- tm_map(my_corpus, content_transformer(stripWhitespace))  
-
-# Final corpus
-final_corpus <- tm_map(my_corpus, removeWords, mystopwords)
-
-manifesto_DTM <- DocumentTermMatrix(final_corpus, control = list(wordLengths = c(2, Inf)))
-
-
-# Topic Model
-topic_model <- LDA(manifesto_DTM, k=5, control = list(seed = 321))
-topics <- tidy(topic_model, matrix = "beta")
-
-top_terms <-
+for(i in 1:length(ideol)){
+  my_corpus <- mp_corpus(parfam == ideol[i] & countryname == "United Kingdom" | countryname == "Australia"
+                     | countryname == "New Zealand" | countryname == "South Africa" |
+                       countryname == "Ireland")
+  
+  print(i)
+  print(ideol[i])
+  
+  # Cleaning the dataset
+  # Stop words
+  my_corpus <- tm_map(my_corpus, removeWords, stopwords("english"))
+  
+  # Puntuation
+  my_corpus <- tm_map(my_corpus, content_transformer(removePunctuation))
+  
+  # Numbers
+  my_corpus <- tm_map(my_corpus, content_transformer(removeNumbers))
+  
+  # Lower Case
+  my_corpus <- tm_map(my_corpus,  content_transformer(tolower))
+  
+  # Particular Stopwords
+  mystopwords <- c("[Aa]nd", "[Ff]or", "[Ii]n", "[Ii]s", "[Ii]t",
+               "[Nn]ot", "[Oo]n", "[Tt]he", "[Tt]o", "we", "will", "the",
+               "australia", "australian", "britain", "ireland", "zealand",
+               "irish", "new", "scotland", "uk", "britain", "south", "africa")
+  
+  my_corpus  <- tm_map(my_corpus, content_transformer(stemDocument), language = "english")
+  
+  # White Spaces
+  my_corpus <- tm_map(my_corpus, content_transformer(stripWhitespace))  
+  
+  # Final corpus
+  final_corpus <- tm_map(my_corpus, removeWords, mystopwords)
+  
+  manifesto_DTM <- DocumentTermMatrix(final_corpus, control = list(wordLengths = c(2, Inf)))
+  
+  # Topic Model
+  topic_model <- LDA(manifesto_DTM, k=5, control = list(seed = 321))
+  topics <- tidy(topic_model, matrix = "beta")
+  
+  print("Corpus done")
+  
+  top_terms <-
   topics %>%
   group_by(topic) %>%
   top_n(10, beta) %>%
   ungroup() %>%
   arrange(topic, -beta)
-
-top_terms %>%
+  
+  top_terms %>%
   mutate(term = reorder(term, beta)) %>%
   ggplot(aes(term, beta, fill = factor(topic))) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales = "free") +
   coord_flip()
-
-print('graphing now')
-
-# Graph
-file <- conservative
-title <- paste0("Topic Model Results for Conservative Parties")
-top_terms %>%
+  
+  print('graphing now')
+  
+  # Graph
+  name <- ifelse(ideol[i] == 10, "Ecological Parties",
+                 ifelse(ideol[i] == 20, "Socialist or Left Parties",
+                        ifelse(ideol[i] == 30, "Social Democratic Parties",
+                               ifelse(ideol[i] == 40, "Liberal Parties",
+                                      ifelse(ideol[i] == 50, "Christian democratic parties",
+                                             ifelse(ideol[i] == 60, "Conservative parties",
+                                                    ifelse(ideol[i] == 70, "Nationalist parties",
+                                                           ifelse(ideol[i] == 80, "Agrarian parties",
+                                                                  "Ethnic and regional parties"))))))))
+  file <- paste0(name, ".png")
+  print(file)
+  title <- paste0("Topic Model Results for ", name)
+  top_terms %>%
   mutate(term = reorder(term, beta)) %>%
   ggplot(aes(term, beta, fill = factor(topic))) + 
   geom_col(show.legend = FALSE) + 
   ggtitle(title) +
   facet_wrap(~ topic, scales = "free") +
   coord_flip()
-ggsave(filename = file)
+  ggsave(filename = file)
+}
 
-# STructural Topic Models
-google_doc_id <- "1LcX-JnpGB0lU1iDnXnxB6WFqBywUKpew" # google file ID
-poliblogs<-read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", google_doc_id),
-                    stringsAsFactors = FALSE)
-processed <- textProcessor(poliblogs$documents, metadata = poliblogs)
-out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
+## Other visuals 
+subsample <- full_data[which(full_data$countryname == "United Kingdom" | full_data$countryname == "Australia"
+                             | full_data$countryname == "New Zealand" | full_data$countryname == "South Africa" |
+                               full_data$countryname == "Ireland"),]
+subsample$type <- ifelse(subsample$parfam == 10, "Ecological", 
+                         ifelse(subsample$parfam == 20, "Socialist",
+                                ifelse(subsample$parfam == 30, "Social Democratic",
+                                       ifelse(subsample$parfam == 40, "Liberal",
+                                              ifelse(subsample$parfam == 50, "Christian democratics",
+                                                     ifelse(subsample$parfam == 60, "Conservative",
+                                                            ifelse(subsample$parfam == 70, "Nationalist",
+                                                                   ifelse(subsample$parfam == 80, "Agrarian",
+                                                                          "Ethnic"))))))))
+ggplot(data=subsample, aes(subsample$type)) + 
+  geom_bar(, stat = "count") + coord_flip() +
+  labs(title="Frequency of Manifestos per Type of Party", y="Count", x="")
+ggsave(filename = "count.png")
