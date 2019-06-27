@@ -55,6 +55,7 @@ d = d.merge(unique_outputs, how = 'left', left_on = 'parfam', right_on = 'parfam
 # modify the data set so PCA can be run on it
 pca_data = d
 pca_data = pca_data.iloc[:,10:(len(pca_data.columns) - 1)]
+pca_data = pca_data.loc[:,'per101':'per703_2']
 # sk.preprocessing.normalize(pca_data, axis = 0)
 le = preprocessing.LabelEncoder()
 for column_name in pca_data.columns:
@@ -80,10 +81,9 @@ plt.axvline(x=40, c = 'red')
 plt.xlabel('nth Principal Component')
 plt.ylabel('% Variance Explained')
 plt.title("Explained Variance for the nth Principal Component")
-plt.text(42, 0.9, '97.6%')
+plt.text(42, 0.9, '98.6%')
 plt.show()
 plt.savefig('pc_cutoff.png', dpi = 1000, bbox_inches = 'tight')
-
 ## do PCA: Choose 40 dimensions from above
 ncomponents = 40
 pca = PCA(n_components = ncomponents)
@@ -98,6 +98,36 @@ transformed_df = pd.DataFrame(X_pca)
 weight_df = pd.DataFrame(pca.components_,
                          columns = pca_data.columns,
                          index = ["PC-" + str(i) for i in range(1, len(pca.components_) + 1)])
+
+## Interpretation
+## The first principal components: what features are they made of?
+feature_df = [[0] * len(weight_df.index) for i in range(len(weight_df.columns))]
+feature_df = pd.DataFrame(feature_df, dtype = float)
+feature_df.shape
+feature_df.columns = ["PC-" + str(i) for i in range(1, len(feature_df.columns) + 1)]
+for i in range(len(feature_df.columns)):
+    thisrow = weight_df.iloc[[i]].transpose()
+    pcname = thisrow.columns[0]
+    features = thisrow.sort_values(by = pcname, axis = 0, ascending = False)#.head(5)
+    feature_df.iloc[:, (i-1)] = features.index.transpose()
+# This df shows the features, in descending order, that make up
+# each of the principal components.
+feature_df
+
+
+
+## Get total pct of variance explained for each features across
+# all principal components.
+components_pctexplained = weight_df.mul(pca_output.iloc[0:40,1].tolist(), axis = 0)
+featurepctvarianceexplained = components_pctexplained.sum(axis = 0)
+featurepctvarianceexplained.sort_values()
+featurepctvarianceexplained
+# Takeaways:
+# The most influential policies in a conservative direction are those
+# regarding economic orthodoxy.
+# The most influential policies in a liberal direction are those
+# regarding populist economic policies.
+
 # plot the weight matrix as a heat map
 fig, ax = plt.subplots(1, 1, figsize = (16,6))
 im = ax.imshow(weight_df,
@@ -122,7 +152,7 @@ target_var = np.array(d['target'])
 target = np_utils.to_categorical(target_var)
 
 ## K means
-d['target'].unique()
+# d['target'].unique()
 k_means = cluster.KMeans(n_clusters=len(d['target'].unique())) #follow the codebook. assume some 10 groups
 kmeans_df = pd.concat([transformed_df, d['target']], axis = 1).dropna()
 k_means.fit(kmeans_df)
@@ -244,38 +274,3 @@ ax1.pie(df.values(), labels = df.keys(),
         autopct = '%1.1f%%', shadow = True, startangle = 90)
 ax1.axis('equal')
 plt.show()
-
-
-## After here, it's not quite useful.
-
-# Plot the first X test images, their predicted label, and the true label
-# Color correct predictions in blue, incorrect predictions in red
-num_rows = 5
-num_cols = 3
-num_images = num_rows*num_cols
-plt.figure(figsize=(2*2*num_cols, 2*num_rows))
-for i in range(num_images):
-  plt.subplot(num_rows, 2*num_cols, 2*i+1)
-  plot_image(i, predictions, y_test, X_test)
-  plt.subplot(num_rows, 2*num_cols, 2*i+2)
-  plot_value_array(i, predictions, y_test)
-plt.show()
-
-# Grab an image from the test dataset
-img = X_test[0]
-
-print(img.shape)
-
-# Add the image to a batch where it's the only member.
-img = (np.expand_dims(img,0))
-
-print(img.shape)
-
-predictions_single = model.predict(img)
-
-print(predictions_single)
-
-plot_value_array(0, predictions_single, y_test)
-_ = plt.xticks(range(10), class_names, rotation=45)
-
-np.argmax(predictions_single[0])
