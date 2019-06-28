@@ -221,3 +221,11 @@ ggplot(data=subsample, aes(subsample$type)) +
   labs(title="Frequency of Manifestos per Type of Party", y="Count", x="") +
   scale_fill_manual(values=new_palette) + theme_classic()
 ggsave(filename = "count.png")
+
+
+# STructural Topic Models
+google_doc_id <- "1LcX-JnpGB0lU1iDnXnxB6WFqBywUKpew" # google file ID
+poliblogs<-read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", google_doc_id),
+                    stringsAsFactors = FALSE)
+processed <- textProcessor(poliblogs$documents, metadata = poliblogs)
+out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
