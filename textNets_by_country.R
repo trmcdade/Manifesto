@@ -76,7 +76,10 @@ for (i in 1:length(countries))
 }
 
 #South Africa - alpha 0.4
-
+#Ireland - alpha 0.3
+#United Kingdom - 0.3
+#Australia - 0.3
+#New Zealand - 0.3
 
 
 
