@@ -20,7 +20,7 @@ mp_setapikey("C:/Users/jacobsm17/R Files/CSV Data/manifesto_apikey.txt")
 
 full_data <- mp_maindataset(version = "current")
 
-my_corpus <- mp_corpus(countryname == "Ireland" )
+my_corpus <- mp_corpus(countryname == "South Africa" )
 
 tidied_corpus <- my_corpus %>% tidy() 
 tidied_corpus
@@ -39,7 +39,7 @@ count(manifesto_id, word) %>%
   cast_sparse(manifesto_id, word, n)
 
 
-many_models <- data_frame(K = c(20, 30, 40, 50)) %>%
+many_models <- data_frame(K = c(10, 20, 30, 40)) %>%
   mutate(topic_model = future_map(K, ~stm(tidy_news_sparse, K = .,
                                           verbose = FALSE)))
 
@@ -134,12 +134,12 @@ gamma_terms %>%
                                   family="IBMPlexSans-Bold"),
         plot.subtitle = element_text(size = 13)) +
   labs(x = NULL, y = expression(gamma),
-       title = "Top 20 topics by prevalence in the Irish Manifesto Coded Data",
+       title = "Top 20 topics by prevalence in the South Africa Manifesto Coded Data",
        subtitle = "With the top words that contribute to each topic")
 
 gamma_terms %>%
   select(topic, gamma, terms) %>% arrange(desc(gamma)) %>% 
   kable(digits = 3, 
-        col.names = c("Topic", "Expected topic proportion", "Top 7 terms")) %>%
+        col.names = c("Topic", "Expected topic proportion", "Top South Africa terms")) %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 
